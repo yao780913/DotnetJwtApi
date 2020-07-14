@@ -1,20 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DotnetJwtApi.Helpers;
 using DotnetJwtApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using NSwag;
+using NSwag.Generation.Processors.Security;
+using System.Linq;
+using System.Text;
 
 namespace DotnetJwtApi
 {
@@ -34,8 +30,6 @@ namespace DotnetJwtApi
 
             services.AddControllers();
 
-            services.AddSwaggerGen();
-
             // configure strongly typed settings objects
             var appSettingsSection = Configuration.GetSection("AppSettings");
             services.Configure<AppSettings>(appSettingsSection);
@@ -43,6 +37,7 @@ namespace DotnetJwtApi
             // configure jwt authentication
             var appsSettings = appSettingsSection.Get<AppSettings>();
             var key = Encoding.ASCII.GetBytes(appsSettings.Secret);
+
             services
                 .AddAuthentication(x =>
                 {
@@ -65,6 +60,22 @@ namespace DotnetJwtApi
             // configure DI for application services
             services.AddScoped<IUserService, UserService>();
 
+            services.AddOpenApiDocument(document =>
+            {
+                var openApiSecurityScheme = new OpenApiSecurityScheme
+                {
+                    Type = OpenApiSecuritySchemeType.ApiKey,
+                    Name = "Authorization",
+                    In = OpenApiSecurityApiKeyLocation.Header,
+                    Description = "Type into the textbox: Bearer {your JWT token}."
+                };
+                document.AddSecurity("JWT",
+                                     Enumerable.Empty<string>(),
+                                     openApiSecurityScheme);
+
+                document.OperationProcessors
+                        .Add(new AspNetCoreOperationSecurityScopeProcessor("JWT"));
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,6 +86,10 @@ namespace DotnetJwtApi
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseHttpsRedirection();
+
+            app.UseRouting();
+
             app.UseCors(x => x
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
@@ -83,23 +98,14 @@ namespace DotnetJwtApi
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseHttpsRedirection();
-
-            app.UseSwagger();
-
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "MY API V1");
-            });
-
-            app.UseRouting();
-
-            app.UseAuthorization();
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
+
+            // Add OpenAPI/Swagger middlewares
+            app.UseOpenApi();    // Serves the registered OpenAPI/Swagger documents by default on `/swagger/{documentName}/swagger.json`
+            app.UseSwaggerUi3(); // Serves the Swagger UI 3 web ui to view the OpenAPI/Swagger documents by default on `/swagger`
         }
     }
 }
