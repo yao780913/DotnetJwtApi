@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DotnetJwtApi.Models;
+﻿using DotnetJwtApi.Models;
 using DotnetJwtApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using NSwag.Annotations;
 
 namespace DotnetJwtApi.Controllers
 {
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -22,18 +22,28 @@ namespace DotnetJwtApi.Controllers
             _userService = userService;
         }
 
+        /// <summary>
+        /// 取得 Token
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         [AllowAnonymous]
         [HttpPost(nameof(Authenticate))]
+        //[OpenApiIgnore]
         public IActionResult Authenticate([FromBody] AuthenticateRequest model)
         {
             var response = _userService.Authenticate(model);
 
             if (response == null)
-                return BadRequest(new { Mesage = "Username of password is incorrect" });
+                return BadRequest(new { Mesage = "Username or password is incorrect" });
 
             return Ok(response);
         }
 
+        /// <summary>
+        /// 取得 所有使用者 資料
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public IActionResult Get()
         {
@@ -41,13 +51,15 @@ namespace DotnetJwtApi.Controllers
             return Ok(users);
         }
 
+        /// <summary>
+        /// 取得 使用者 資料
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public IActionResult Get(int id)
         {
-            if (!int.TryParse(id, out int i))
-                return BadRequest(new { Message = "Id is not valid." });
-
-            var user = _userService.Get(i);
+            var user = _userService.Get(id);
 
             if (user == null)
                 return NotFound(new { Message = "Not found" });

@@ -60,8 +60,13 @@ namespace DotnetJwtApi
             // configure DI for application services
             services.AddScoped<IUserService, UserService>();
 
-            services.AddOpenApiDocument(document =>
+            services.AddOpenApiDocument(config =>
             {
+                config.DocumentName = "v1";
+                config.Version = "0.0.1";
+                config.Title = "Jwt Api Demo";
+                config.Description = "Jwt Api Demo with NSwag";
+
                 var openApiSecurityScheme = new OpenApiSecurityScheme
                 {
                     Type = OpenApiSecuritySchemeType.ApiKey,
@@ -69,11 +74,11 @@ namespace DotnetJwtApi
                     In = OpenApiSecurityApiKeyLocation.Header,
                     Description = "Type into the textbox: Bearer {your JWT token}."
                 };
-                document.AddSecurity("JWT",
+                config.AddSecurity("JWT",
                                      Enumerable.Empty<string>(),
                                      openApiSecurityScheme);
 
-                document.OperationProcessors
+                config.OperationProcessors
                         .Add(new AspNetCoreOperationSecurityScopeProcessor("JWT"));
             });
         }
@@ -106,6 +111,11 @@ namespace DotnetJwtApi
             // Add OpenAPI/Swagger middlewares
             app.UseOpenApi();    // Serves the registered OpenAPI/Swagger documents by default on `/swagger/{documentName}/swagger.json`
             app.UseSwaggerUi3(); // Serves the Swagger UI 3 web ui to view the OpenAPI/Swagger documents by default on `/swagger`
+
+            app.UseReDoc(config =>
+            {
+                config.Path = "/redoc";
+            });
         }
     }
 }

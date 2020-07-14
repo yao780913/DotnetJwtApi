@@ -17,6 +17,7 @@ namespace DotnetJwtApi.Services
         AuthenticateResponse Authenticate(AuthenticateRequest model);
 
         IEnumerable<User> GetAll();
+
         User Get(int id);
     }
 
@@ -31,12 +32,12 @@ namespace DotnetJwtApi.Services
 
         private readonly AppSettings _appSettings;
 
-
         public UserService(IOptions<AppSettings> appSettings)
         {
             _appSettings = appSettings.Value;
         }
 
+        
         public AuthenticateResponse Authenticate(AuthenticateRequest model)
         {
             var user = _users.SingleOrDefault(x => x.UserName == model.UserName && x.Password == model.Password);
@@ -69,7 +70,8 @@ namespace DotnetJwtApi.Services
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.Name, user.Id.ToString())
+                    new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
